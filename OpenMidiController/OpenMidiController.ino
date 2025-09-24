@@ -6,6 +6,8 @@
 #include "LED.h"
 #include "HotButton.h"
 
+#define DISP_MAX_BRIGHTNESS 6
+
 #define PIN_BTN_1 10
 #define PIN_BTN_2 16
 #define PIN_BTN_3 14
@@ -66,9 +68,14 @@ void setup()
     while (1);
   }
   Serial.println("Display acknowledged.");
+  display.setBrightness(0);
+  display.print("Moin");
 
-  display.print("Midi");
-
+  for(int i=0; i<=255; i++){
+    LEDRed(i);
+    display.setBrightness(map(i, 0, 255, 0, DISP_MAX_BRIGHTNESS));
+    delay(5);
+  }  
 
 }
 
