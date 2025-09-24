@@ -8,6 +8,9 @@
 
 #define DISP_MAX_BRIGHTNESS 6
 
+#define EXP_MIN_VALUE 73
+#define EXP_MAX_VALUE 512
+
 #define PIN_BTN_1 10
 #define PIN_BTN_2 16
 #define PIN_BTN_3 14
@@ -21,8 +24,10 @@
 #define PIN_EXP_2_RING A1
 #define PIN_EXP_2_SLEEVE 8
 
+
+
 #define POT_READ_COUNT 20
-#define POT_READ_CHANGE_OFFSET 5
+#define POT_READ_CHANGE_OFFSET 2
 
 
 HT16K33 display;
@@ -32,12 +37,12 @@ HotButton BTN_2(PIN_BTN_2, true, LOW);
 HotButton BTN_3(PIN_BTN_3, true, LOW);
 HotButton BTN_4(PIN_BTN_4, true, LOW);
 
-HotButton BTN_5(PIN_EXP_2_TIP, true, LOW);
-HotButton BTN_6(PIN_EXP_2_RING, true, LOW);
-
 
 long EXP_1_CURRENT_VALUE = 0;
 long EXP_1_OLD_VALUE = 0;
+
+long EXP_2_CURRENT_VALUE = 0;
+long EXP_2_OLD_VALUE = 0;
 
 long EXP_1_MIN_VALUE = 50;
 long EXP_1_MAX_VALUE = 800;
@@ -56,12 +61,12 @@ void setup()
   pinMode(PIN_BTN_4, INPUT_PULLUP);
 
   pinMode(PIN_EXP_1_SLEEVE, INPUT_PULLUP);
-  pinMode(PIN_EXP_2_SLEEVE, INPUT_PULLUP);
-
-
+  
 
   pinMode(PIN_EXP_2_TIP, INPUT);
-  digitalWrite(PIN_EXP_2_SLEEVE, LOW);
+  pinMode(PIN_EXP_2_RING, INPUT);
+  pinMode(PIN_EXP_2_SLEEVE, INPUT);
+
 
   Wire.begin(); //Join I2C bus
 
@@ -89,14 +94,41 @@ void setup()
 void loop()
 {
   HandleButtons();
+  HandleExpressionPedal1();
 
   if(digitalRead(PIN_EXP_1_SLEEVE)) // Something is connected
     HandleExpressionPedal();
+
 
   
   
 
 }
+
+uint8_t HandleExpressionPedal1() {
+
+  if(digitalRead(PIN_EXP_2_SLEEVE)) // Something is connected
+    return;
+
+  EXP_2_CURRENT_VALUE = 0;
+  for(int i = 0; i < POT_READ_COUNT; i++)
+    EXP_2_CURRENT_VALUE += analogRead(PIN_EXP_2_TIP);
+  EXP_2_CURRENT_VALUE /= POT_READ_COUNT;
+  
+  if(EXP_2_CURRENT_VALUE > EXP_MAX_VALUE)
+    EXP_2_CURRENT_VALUE = EXP_MAX_VALUE;
+  if(EXP_2_CURRENT_VALUE < EXP_MIN_VALUE)
+    EXP_2_CURRENT_VALUE = EXP_MIN_VALUE;
+
+  if((EXP_2_CURRENT_VALUE < (EXP_2_OLD_VALUE - POT_READ_CHANGE_OFFSET)) || (EXP_2_CURRENT_VALUE >= (EXP_2_OLD_VALUE + POT_READ_CHANGE_OFFSET))){
+    EXP_2_OLD_VALUE = EXP_2_CURRENT_VALUE;
+    
+      long a0 = map(EXP_2_OLD_VALUE, EXP_MIN_VALUE,EXP_MAX_VALUE,0,1023);
+      display.print(a0);
+      Serial.println(a0);
+  }
+}
+
 
 void HandleExpressionPedal()
 {
@@ -151,9 +183,6 @@ void HandleButtons()
   BTN_3.update();
   BTN_4.update();
 
-  BTN_5.update();
-  BTN_6.update();
-
   if (BTN_1.event(SHORT)){
     display.print("B1 S");
   }
@@ -194,25 +223,6 @@ void HandleButtons()
     display.print("B4 D");
   }
 
-  if (BTN_5.event(SHORT)){
-    display.print("B5 S");
-  }
-  if (BTN_5.pressedFor(LONG_PRESS_TIME)){
-    display.print("B5 L");
-  }
-  if (BTN_5.isDoubleClick()){
-    display.print("B5 D");
-  }
-
-  if (BTN_6.event(SHORT)){
-    display.print("B6 S");
-  }
-  if (BTN_6.pressedFor(LONG_PRESS_TIME)){
-    display.print("B6 L");
-  }
-  if (BTN_6.isDoubleClick()){
-    display.print("B6 D");
-  }
 
 }
 
