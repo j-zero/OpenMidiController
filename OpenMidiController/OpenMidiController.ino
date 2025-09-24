@@ -21,7 +21,7 @@
 #define PIN_EXP_2_RING A1
 #define PIN_EXP_2_SLEEVE 8
 
-#define POT_READ_COUNT 32
+#define POT_READ_COUNT 20
 #define POT_READ_CHANGE_OFFSET 5
 
 
@@ -39,6 +39,10 @@ HotButton BTN_6(PIN_EXP_2_RING, true, LOW);
 long EXP_1_CURRENT_VALUE = 0;
 long EXP_1_OLD_VALUE = 0;
 
+long EXP_1_MIN_VALUE = 50;
+long EXP_1_MAX_VALUE = 800;
+
+
 
 void setup()
 {
@@ -51,15 +55,18 @@ void setup()
   pinMode(PIN_BTN_3, INPUT_PULLUP);
   pinMode(PIN_BTN_4, INPUT_PULLUP);
 
+  pinMode(PIN_EXP_1_SLEEVE, INPUT_PULLUP);
+  pinMode(PIN_EXP_2_SLEEVE, INPUT_PULLUP);
 
-  pinMode(PIN_EXP_2_SLEEVE, OUTPUT);
+
+
   pinMode(PIN_EXP_2_TIP, INPUT);
   digitalWrite(PIN_EXP_2_SLEEVE, LOW);
 
   Wire.begin(); //Join I2C bus
 
   Serial.begin(115200);
-  while (!Serial);
+  //while (!Serial);
   
 
   if (display.begin() == false)
@@ -82,8 +89,12 @@ void setup()
 void loop()
 {
   HandleButtons();
-  HandleExpressionPedal();
-  //Serial.println(digitalRead(PIN_BTN_1));
+
+  if(digitalRead(PIN_EXP_1_SLEEVE)) // Something is connected
+    HandleExpressionPedal();
+
+  
+  
 
 }
 
@@ -94,21 +105,25 @@ void HandleExpressionPedal()
 
   // Expression
   pinMode(PIN_EXP_1_RING, OUTPUT);
-  pinMode(PIN_EXP_1_SLEEVE, OUTPUT);
   pinMode(PIN_EXP_1_TIP, INPUT);
 
-  //PORTF |= 1 << 4; //set bit 2
   digitalWrite(PIN_EXP_1_RING, HIGH);
-  digitalWrite(PIN_EXP_1_SLEEVE, LOW);
 
   EXP_1_CURRENT_VALUE = 0;
   for(int i = 0; i < POT_READ_COUNT; i++)
     EXP_1_CURRENT_VALUE += analogRead(PIN_EXP_1_TIP);
   EXP_1_CURRENT_VALUE /= POT_READ_COUNT;
-  
 
-  MIDI_EXP_1_VALUE = map(EXP_1_CURRENT_VALUE, 30, 941, 0, 127);
+  if(EXP_1_CURRENT_VALUE < EXP_1_MIN_VALUE)
+    EXP_1_MIN_VALUE = EXP_1_CURRENT_VALUE;
+
+  if(EXP_1_CURRENT_VALUE > EXP_1_MAX_VALUE)
+    EXP_1_MAX_VALUE = EXP_1_CURRENT_VALUE;
+
+  MIDI_EXP_1_VALUE = map(EXP_1_CURRENT_VALUE, EXP_1_MIN_VALUE, EXP_1_MAX_VALUE, 0, 128);
   if(MIDI_EXP_1_VALUE > 127) MIDI_EXP_1_VALUE = 127;
+
+
   if((EXP_1_CURRENT_VALUE < (EXP_1_OLD_VALUE - POT_READ_CHANGE_OFFSET)) || (EXP_1_CURRENT_VALUE >= (EXP_1_OLD_VALUE + POT_READ_CHANGE_OFFSET))){
     EXP_1_OLD_VALUE = EXP_1_CURRENT_VALUE;
     
