@@ -1,3 +1,6 @@
+#define DEBUG
+
+
 #include <Wire.h>
 #include <SparkFun_Alphanumeric_Display.h> //Click here to get the library: http://librarymanager/All#SparkFun_Qwiic_Alphanumeric_Display by SparkFun
 #include "LED.h"
@@ -16,12 +19,20 @@
 #define PIN_EXP_2_RING A1
 #define PIN_EXP_2_SLEEVE 8
 
+#define POT_READ_COUNT 32
+#define POT_READ_CHANGE_OFFSET 5
+
+
 HT16K33 display;
 
 HotButton BTN_1(PIN_BTN_1, true, LOW);
-HotButton BTN_2(PIN_BTN_2); 
-HotButton BTN_3(PIN_BTN_3); 
-HotButton BTN_4(PIN_BTN_4); 
+HotButton BTN_2(PIN_BTN_2, true, LOW);
+HotButton BTN_3(PIN_BTN_3, true, LOW);
+HotButton BTN_4(PIN_BTN_4, true, LOW);
+
+HotButton BTN_5(PIN_EXP_2_TIP, true, LOW);
+HotButton BTN_6(PIN_EXP_2_RING, true, LOW);
+
 
 long EXP_1_CURRENT_VALUE = 0;
 long EXP_1_OLD_VALUE = 0;
@@ -38,6 +49,10 @@ void setup()
   pinMode(PIN_BTN_3, INPUT_PULLUP);
   pinMode(PIN_BTN_4, INPUT_PULLUP);
 
+
+  pinMode(PIN_EXP_2_SLEEVE, OUTPUT);
+  pinMode(PIN_EXP_2_TIP, INPUT);
+  digitalWrite(PIN_EXP_2_SLEEVE, LOW);
 
   Wire.begin(); //Join I2C bus
 
@@ -67,8 +82,6 @@ void loop()
 
 void HandleExpressionPedal()
 {
-  #define POT_READ_COUNT 10
-  #define POT_READ_CHANGE_OFFSET 5
 
   uint8_t MIDI_EXP_1_VALUE = 0;
 
@@ -76,7 +89,8 @@ void HandleExpressionPedal()
   pinMode(PIN_EXP_1_RING, OUTPUT);
   pinMode(PIN_EXP_1_SLEEVE, OUTPUT);
   pinMode(PIN_EXP_1_TIP, INPUT);
-  
+
+  //PORTF |= 1 << 4; //set bit 2
   digitalWrite(PIN_EXP_1_RING, HIGH);
   digitalWrite(PIN_EXP_1_SLEEVE, LOW);
 
@@ -86,16 +100,19 @@ void HandleExpressionPedal()
   EXP_1_CURRENT_VALUE /= POT_READ_COUNT;
   
 
-  MIDI_EXP_1_VALUE = map(EXP_1_CURRENT_VALUE, 30, 940, 0, 127);
-
-
+  MIDI_EXP_1_VALUE = map(EXP_1_CURRENT_VALUE, 30, 941, 0, 127);
+  if(MIDI_EXP_1_VALUE > 127) MIDI_EXP_1_VALUE = 127;
   if((EXP_1_CURRENT_VALUE < (EXP_1_OLD_VALUE - POT_READ_CHANGE_OFFSET)) || (EXP_1_CURRENT_VALUE >= (EXP_1_OLD_VALUE + POT_READ_CHANGE_OFFSET))){
     EXP_1_OLD_VALUE = EXP_1_CURRENT_VALUE;
     
-
-    Serial.print(MIDI_EXP_1_VALUE);
-    display.print(MIDI_EXP_1_VALUE);
+#ifdef DEBUG
+    Serial.print(EXP_1_CURRENT_VALUE);
+    Serial.print(", ");
+    Serial.print(analogRead(PIN_EXP_1_RING));
     Serial.println("");
+#endif
+
+    display.print(MIDI_EXP_1_VALUE);
   }
   
 
@@ -104,41 +121,75 @@ void HandleExpressionPedal()
 
 void HandleButtons()
 {
+
+  #define LONG_PRESS_TIME 500
+
   BTN_1.update();
   BTN_2.update();
   BTN_3.update();
   BTN_4.update();
 
-  if (BTN_1.event(SHORT)){
-    Serial.println("BTN_1 Short!");
-  }
+  BTN_5.update();
+  BTN_6.update();
 
-  if (BTN_1.event(LONG)){
-    Serial.println("BTN_1 Long!");
+  if (BTN_1.event(SHORT)){
+    display.print("B1 S");
+  }
+  if (BTN_1.pressedFor(LONG_PRESS_TIME)){
+    display.print("B1 L");
+  }
+  if (BTN_1.isDoubleClick()){
+    display.print("B1 D");
   }
 
   if (BTN_2.event(SHORT)){
-    Serial.println("BTN_2 Short!");
+    display.print("B2 S");
   }
-
-  if (BTN_2.event(LONG)){
-    Serial.println("BTN_2 Long!");
+  if (BTN_2.pressedFor(LONG_PRESS_TIME)){
+    display.print("B2 L");
+  }
+  if (BTN_2.isDoubleClick()){
+    display.print("B2 D");
   }
 
   if (BTN_3.event(SHORT)){
-    Serial.println("BTN_3 Short!");
+    display.print("B3 S");
   }
-
-  if (BTN_3.event(LONG)){
-    Serial.println("BTN_3 Long!");
+  if (BTN_3.pressedFor(LONG_PRESS_TIME)){
+    display.print("B3 L");
+  }
+  if (BTN_3.isDoubleClick()){
+    display.print("B3 D");
   }
 
   if (BTN_4.event(SHORT)){
-    Serial.println("BTN_4 Short!");
+    display.print("B4 S");
+  }
+  if (BTN_4.pressedFor(LONG_PRESS_TIME)){
+    display.print("B4 L");
+  }
+  if (BTN_4.isDoubleClick()){
+    display.print("B4 D");
   }
 
-  if (BTN_4.event(LONG)){
-    Serial.println("BTN_4 Long!");
+  if (BTN_5.event(SHORT)){
+    display.print("B5 S");
+  }
+  if (BTN_5.pressedFor(LONG_PRESS_TIME)){
+    display.print("B5 L");
+  }
+  if (BTN_5.isDoubleClick()){
+    display.print("B5 D");
+  }
+
+  if (BTN_6.event(SHORT)){
+    display.print("B6 S");
+  }
+  if (BTN_6.pressedFor(LONG_PRESS_TIME)){
+    display.print("B6 L");
+  }
+  if (BTN_6.isDoubleClick()){
+    display.print("B6 D");
   }
 
 }

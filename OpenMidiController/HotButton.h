@@ -2,7 +2,7 @@
 
 #define MAX_PRESSES 4
 #define DEBOUNCE_TIME 20
-#define EVENT_TIMEOUT 50
+#define EVENT_TIMEOUT 200
 
 #define BETWEEN(a, b)   ((((a / 10) & 0xFF) << 8) | ((b / 10) & 0xFF))
 #define OVER(a)         ((((a / 10) & 0xFF) << 8) | 0xFF)
